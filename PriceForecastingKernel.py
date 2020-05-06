@@ -132,14 +132,26 @@ def cross_validate(working_data, get_split, train_model, get_rmse, workflow, n_t
     return mean_rmse, rmse_list
 
 
-def data_preparation(file_path):
-    working_data = pd.read_csv(file_path)
-    working_data.timestamp = pd.to_datetime(working_data.timestamp).dt.date
-    group = working_data.groupby('timestamp')
-    working_data = group['close'].mean()
+def data_preparation(dataframe):
+    """
+            Some manipulations with date before proceeding data ahead
+            :param dataframe: data loaded from exchange
+            :return: dataframe with date as index and close price as value
+            """
+    working_data = dataframe
     working_data = working_data.reset_index()
-    working_data.timestamp = pd.to_datetime(working_data.timestamp)
     working_data = working_data.set_index('timestamp')
+    working_data.drop(columns=['index', 'ignore'], inplace=True)
+    convert_dict = {'open': float,
+                    'high': float,
+                    'low': float,
+                    'close': float,
+                    'volume': float,
+                    'quote_av': float,
+                    'trades': int,
+                    'tb_base_av': float,
+                    'tb_quote_av': float}
+    working_data = working_data.astype(convert_dict)
     return working_data
 
 
