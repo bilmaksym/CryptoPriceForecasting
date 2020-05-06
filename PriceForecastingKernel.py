@@ -19,6 +19,7 @@ from matplotlib import pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 import plotly.offline as py
 import plotly.graph_objs as go
+from DataLoader import DataLoader
 
 
 # py.init_notebook_mode(connected=True)
@@ -139,19 +140,11 @@ def data_preparation(dataframe):
             :return: dataframe with date as index and close price as value
             """
     working_data = dataframe
+    group = working_data.groupby('timestamp')
+    working_data = group['close'].mean()
     working_data = working_data.reset_index()
+    working_data.timestamp = pd.to_datetime(working_data.timestamp)
     working_data = working_data.set_index('timestamp')
-    working_data.drop(columns=['index', 'ignore'], inplace=True)
-    convert_dict = {'open': float,
-                    'high': float,
-                    'low': float,
-                    'close': float,
-                    'volume': float,
-                    'quote_av': float,
-                    'trades': int,
-                    'tb_base_av': float,
-                    'tb_quote_av': float}
-    working_data = working_data.astype(convert_dict)
     return working_data
 
 
@@ -168,11 +161,15 @@ def plot_graph(working_data, n_test, prediction2_inverse, Y_test2_inverse):
     fig = go.Figure(data=data, layout=layout)
     fig.show()
 
+# Constants
+API_SECRET = "iCnm9Pqr0X8pVDgKr661q8Vvs3WrCQ8WVgKljFvkln4V9hegqbZKe7VI4I8Xl0ES"
+API_KEY = "rnJ0EQ9RLAt1HPeQ3uQ4wpk1IkDLe99lzvMjwmzlgZz6EraKeYFU6Ou40lMjTZhr"
+if __name__ == "__main__":
+    loader = DataLoader(API_KEY, API_SECRET)
+    working_data = data_preparation(loader.load_data("BTCUSDT", "1h", 660))
+    n_test = 60
 
-working_data = data_preparation("C:\BTCUSDT-1m-data.csv")
-n_test = 10
+    RMSE, predictions, y_inverse = workflow(working_data, get_split, train_model_LSTM, get_rmse, n_train=600, n_test=n_test)
+    print('Test GRU model RMSE: %.3f' % RMSE)
 
-RMSE, predictions, y_inverse = workflow(working_data, get_split, train_model_LSTM, get_rmse, n_train=100, n_test=n_test)
-print('Test GRU model RMSE: %.3f' % RMSE)
-
-plot_graph(working_data, n_test, predictions, y_inverse)
+    plot_graph(working_data, n_test, predictions, y_inverse)
